@@ -3,6 +3,9 @@ package vault
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/vault-client-go"
@@ -27,7 +30,38 @@ func NewClient(address string) (*Client, error) {
 		return nil, fmt.Errorf("failed to create vault client: %w", err)
 	}
 
+	// Set authentication token from VAULT_TOKEN env or ~/.vault-token file
+	token := getVaultToken()
+	if token != "" {
+		if err := client.SetToken(token); err != nil {
+			return nil, fmt.Errorf("failed to set vault token: %w", err)
+		}
+	}
+
 	return &Client{client: client}, nil
+}
+
+// getVaultToken returns the Vault token from environment or token file.
+// Priority: VAULT_TOKEN env var > ~/.vault-token file
+func getVaultToken() string {
+	// Check environment variable first
+	if token := os.Getenv("VAULT_TOKEN"); token != "" {
+		return token
+	}
+
+	// Fall back to ~/.vault-token file
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	tokenFile := filepath.Join(home, ".vault-token")
+	data, err := os.ReadFile(tokenFile)
+	if err != nil {
+		return ""
+	}
+
+	return strings.TrimSpace(string(data))
 }
 
 func (c *Client) GetOIDCToken(ctx context.Context, path string) (string, int64, error) {
