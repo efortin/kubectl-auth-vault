@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/efortin/kubectl-auth-vault/actions/workflows/ci.yml/badge.svg)](https://github.com/efortin/kubectl-auth-vault/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/efortin/kubectl-auth-vault)](https://goreportcard.com/report/github.com/efortin/kubectl-auth-vault)
-[![codecov](https://codecov.io/gh/efortin/kubectl-auth-vault/branch/main/graph/badge.svg)](https://codecov.io/gh/efortin/kubectl-auth-vault)
+[![codecov](https://codecov.io/gh/efortin/kubectl-auth-vault/graph/badge.svg?token=GV7KI0ZUH0)](https://codecov.io/gh/efortin/kubectl-auth-vault)
 [![Go Reference](https://pkg.go.dev/badge/github.com/efortin/kubectl-auth-vault.svg)](https://pkg.go.dev/github.com/efortin/kubectl-auth-vault)
 [![Release](https://img.shields.io/github/v/release/efortin/kubectl-auth-vault)](https://github.com/efortin/kubectl-auth-vault/releases/latest)
 
