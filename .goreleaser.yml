@@ -1,0 +1,98 @@
+version: 2
+
+project_name: kubectl-auth_vault
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: kubectl-auth_vault
+    main: ./cmd/kubectl-auth_vault
+    binary: kubectl-auth_vault
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/efortin/kubectl-auth-vault/internal/cmd.Version={{.Version}}
+      - -X github.com/efortin/kubectl-auth-vault/internal/cmd.Commit={{.Commit}}
+      - -X github.com/efortin/kubectl-auth-vault/internal/cmd.BuildDate={{.Date}}
+
+archives:
+  - id: default
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: efortin
+    name: kubectl-auth-vault
+  draft: false
+  prerelease: auto
+  name_template: "{{.ProjectName}} v{{.Version}}"
+
+brews:
+  - name: kubectl-auth_vault
+    repository:
+      owner: efortin
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    folder: Formula
+    homepage: "https://github.com/efortin/kubectl-auth-vault"
+    description: "Kubectl plugin for Vault OIDC token authentication"
+    license: "MIT"
+    skip_upload: auto
+    test: |
+      system "#{bin}/kubectl-auth_vault", "version"
+    install: |
+      bin.install "kubectl-auth_vault"
+
+krews:
+  - name: auth-vault
+    repository:
+      owner: efortin
+      name: krew-index
+      token: "{{ .Env.KREW_GITHUB_TOKEN }}"
+    skip_upload: auto
+    homepage: "https://github.com/efortin/kubectl-auth-vault"
+    short_description: "Vault OIDC token authentication for kubectl"
+    description: |
+      A kubectl credential plugin that fetches OIDC tokens from HashiCorp Vault.
+      It caches tokens locally and reuses them until expiration.

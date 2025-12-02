@@ -1,0 +1,143 @@
+version: '3'
+
+vars:
+  BINARY_NAME: kubectl-auth_vault
+  MAIN_PKG: ./cmd/kubectl-auth_vault
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+  COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo "none"
+  BUILD_DATE:
+    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  LDFLAGS: -s -w -X github.com/efortin/kubectl-auth-vault/internal/cmd.Version={{.VERSION}} -X github.com/efortin/kubectl-auth-vault/internal/cmd.Commit={{.COMMIT}} -X github.com/efortin/kubectl-auth-vault/internal/cmd.BuildDate={{.BUILD_DATE}}
+
+tasks:
+  default:
+    desc: Build for current OS/arch
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o bin/{{.BINARY_NAME}} {{.MAIN_PKG}}
+
+  deps:
+    desc: Download dependencies
+    cmds:
+      - go mod download
+      - go mod tidy
+
+  test:
+    desc: Run tests with Ginkgo
+    cmds:
+      - go run github.com/onsi/ginkgo/v2/ginkgo -r -v ./...
+
+  test:coverage:
+    desc: Run tests with coverage
+    cmds:
+      - go run github.com/onsi/ginkgo/v2/ginkgo -r -v --coverprofile=coverage.out --covermode=atomic ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - go tool cover -func=coverage.out
+
+  test:watch:
+    desc: Run tests in watch mode
+    cmds:
+      - go run github.com/onsi/ginkgo/v2/ginkgo watch -r ./...
+
+  lint:
+    desc: Run linter
+    cmds:
+      - golangci-lint run
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf bin/
+      - rm -rf dist/
+      - rm -f coverage.out coverage.html
+
+  build:
+    desc: Build for current OS/arch
+    cmds:
+      - task: default
+
+  build:linux:amd64:
+    desc: Build for Linux amd64
+    env:
+      GOOS: linux
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/{{.BINARY_NAME}}-linux-amd64 {{.MAIN_PKG}}
+
+  build:linux:arm64:
+    desc: Build for Linux arm64
+    env:
+      GOOS: linux
+      GOARCH: arm64
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/{{.BINARY_NAME}}-linux-arm64 {{.MAIN_PKG}}
+
+  build:darwin:amd64:
+    desc: Build for macOS amd64
+    env:
+      GOOS: darwin
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/{{.BINARY_NAME}}-darwin-amd64 {{.MAIN_PKG}}
+
+  build:darwin:arm64:
+    desc: Build for macOS arm64 (Apple Silicon)
+    env:
+      GOOS: darwin
+      GOARCH: arm64
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/{{.BINARY_NAME}}-darwin-arm64 {{.MAIN_PKG}}
+
+  build:windows:amd64:
+    desc: Build for Windows amd64
+    env:
+      GOOS: windows
+      GOARCH: amd64
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o dist/{{.BINARY_NAME}}-windows-amd64.exe {{.MAIN_PKG}}
+
+  build:all:
+    desc: Build for all platforms
+    cmds:
+      - mkdir -p dist
+      - task: build:linux:amd64
+      - task: build:linux:arm64
+      - task: build:darwin:amd64
+      - task: build:darwin:arm64
+      - task: build:windows:amd64
+
+  install:
+    desc: Install to /usr/local/bin
+    deps: [default]
+    cmds:
+      - cp bin/{{.BINARY_NAME}} /usr/local/bin/
+
+  install:user:
+    desc: Install to ~/bin
+    deps: [default]
+    cmds:
+      - mkdir -p ~/bin
+      - cp bin/{{.BINARY_NAME}} ~/bin/
+
+  checksums:
+    desc: Generate checksums for dist files
+    cmds:
+      - cd dist && shasum -a 256 * > checksums.txt
+
+  release:local:
+    desc: Build release locally with goreleaser
+    cmds:
+      - goreleaser release --snapshot --clean
+
+  release:
+    desc: Build all platforms and generate checksums
+    cmds:
+      - task: clean
+      - task: build:all
+      - task: checksums
