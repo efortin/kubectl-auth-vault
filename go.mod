@@ -1,6 +1,6 @@
 module github.com/efortin/kubectl-auth-vault
 
-go 1.21
+go 1.24
 
 require (
 	github.com/hashicorp/vault-client-go v0.4.3

@@ -73,7 +73,7 @@ kubectl auth-vault version
 ```bash
 # Using environment variable
 export VAULT_ADDR=https://vault.example.com
-kubectl-auth_vault get --token-path identity/oidc/token/enablers_kubernetes_admin
+kubectl-auth_vault get --token-path identity/oidc/token/kubernetes
 
 # Using flags
 kubectl-auth_vault get --vault-addr https://vault.example.com --token-path identity/oidc/token/my_role
@@ -100,7 +100,7 @@ users:
       args:
       - get
       - --token-path
-      - identity/oidc/token/enablers_kubernetes_admin
+      - identity/oidc/token/kubernetes
 ```
 
 Or with inline vault-addr:
@@ -116,9 +116,9 @@ users:
       args:
       - get
       - --vault-addr
-      - https://vault.efortin.net
+      - https://vault.<your-domain>
       - --token-path
-      - identity/oidc/token/enablers_kubernetes_admin
+      - identity/oidc/token/kubernetes
 ```
 
 ## Get Command Options
@@ -126,7 +126,7 @@ users:
 | Flag | Environment | Description | Default |
 |------|-------------|-------------|---------|
 | `--vault-addr` | `VAULT_ADDR` | Vault server address | (required) |
-| `--token-path` | - | Vault OIDC token path | `identity/oidc/token/enablers_kubernetes_admin` |
+| `--token-path` | - | Vault OIDC token path | `identity/oidc/token/kubernetes` |
 | `--cache-file` | - | Token cache file path | `~/.kube/vault_<path>_token.json` |
 | `--no-cache` | - | Disable token caching | `false` |
 

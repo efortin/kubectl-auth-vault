@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,7 +16,15 @@ import (
 
 	"github.com/efortin/kubectl-auth-vault/internal/cmd"
 	"github.com/efortin/kubectl-auth-vault/internal/jwt"
+	"github.com/efortin/kubectl-auth-vault/internal/vault"
 )
+
+func writeVaultResponse(w http.ResponseWriter, resp vault.OIDCTokenResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
 
 func createTestJWT(exp int64) string {
 	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","typ":"JWT"}`))
@@ -23,7 +32,7 @@ func createTestJWT(exp int64) string {
 	payloadBytes, _ := json.Marshal(payload)
 	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
 	signature := base64.RawURLEncoding.EncodeToString([]byte("fake-signature"))
-	return header + "." + payloadB64 + "." + signature
+	return strings.Join([]string{header, payloadB64, signature}, ".")
 }
 
 func executeCommand(args ...string) (*bytes.Buffer, error) {
@@ -72,7 +81,7 @@ var _ = Describe("Commands", func() {
 	Describe("Get Command", func() {
 		Context("without VAULT_ADDR", func() {
 			BeforeEach(func() {
-				os.Unsetenv("VAULT_ADDR")
+				_ = os.Unsetenv("VAULT_ADDR")
 			})
 
 			It("should return an error", func() {
@@ -93,11 +102,8 @@ var _ = Describe("Commands", func() {
 				testToken = createTestJWT(exp)
 
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
-						"data": map[string]interface{}{
-							"token": testToken,
-						},
+					writeVaultResponse(w, vault.OIDCTokenResponse{
+						Data: vault.OIDCTokenData{Token: testToken},
 					})
 				}))
 
@@ -108,7 +114,7 @@ var _ = Describe("Commands", func() {
 
 			AfterEach(func() {
 				server.Close()
-				os.RemoveAll(tmpDir)
+				_ = os.RemoveAll(tmpDir)
 			})
 
 			It("should return a valid ExecCredential", func() {
@@ -135,11 +141,8 @@ var _ = Describe("Commands", func() {
 				callCount := 0
 				server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					callCount++
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
-						"data": map[string]interface{}{
-							"token": testToken,
-						},
+					writeVaultResponse(w, vault.OIDCTokenResponse{
+						Data: vault.OIDCTokenData{Token: testToken},
 					})
 				})
 
@@ -161,11 +164,8 @@ var _ = Describe("Commands", func() {
 				callCount := 0
 				server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					callCount++
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
-						"data": map[string]interface{}{
-							"token": testToken,
-						},
+					writeVaultResponse(w, vault.OIDCTokenResponse{
+						Data: vault.OIDCTokenData{Token: testToken},
 					})
 				})
 
@@ -185,8 +185,7 @@ var _ = Describe("Commands", func() {
 			})
 
 			It("should use VAULT_ADDR from environment", func() {
-				os.Setenv("VAULT_ADDR", server.URL)
-				defer os.Unsetenv("VAULT_ADDR")
+				GinkgoT().Setenv("VAULT_ADDR", server.URL)
 
 				cacheFile := filepath.Join(tmpDir, "cache.json")
 				_, err := executeCommand(
@@ -203,7 +202,7 @@ var _ = Describe("Commands", func() {
 	Describe("Config Test Command", func() {
 		Context("without VAULT_ADDR", func() {
 			BeforeEach(func() {
-				os.Unsetenv("VAULT_ADDR")
+				_ = os.Unsetenv("VAULT_ADDR")
 			})
 
 			It("should return an error", func() {
@@ -220,11 +219,8 @@ var _ = Describe("Commands", func() {
 				testToken := createTestJWT(exp)
 
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
-						"data": map[string]interface{}{
-							"token": testToken,
-						},
+					writeVaultResponse(w, vault.OIDCTokenResponse{
+						Data: vault.OIDCTokenData{Token: testToken},
 					})
 				}))
 			})

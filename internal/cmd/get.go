@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/efortin/kubectl-auth-vault/internal/cache"
 	"github.com/efortin/kubectl-auth-vault/internal/credential"
 	"github.com/efortin/kubectl-auth-vault/internal/vault"
-	"github.com/spf13/cobra"
 )
 
 type getOptions struct {
@@ -42,7 +43,7 @@ The token is cached locally and reused until expiration.`,
 	}
 
 	getCmd.Flags().StringVar(&opts.vaultAddr, "vault-addr", "", "Vault server address (env: VAULT_ADDR)")
-	getCmd.Flags().StringVar(&opts.tokenPath, "token-path", "identity/oidc/token/enablers_kubernetes_admin", "Vault OIDC token path")
+	getCmd.Flags().StringVar(&opts.tokenPath, "token-path", "", "Vault OIDC token path")
 	getCmd.Flags().StringVar(&opts.cacheFile, "cache-file", "", "Token cache file path (default: ~/.kube/vault_<sanitized_path>_token.json)")
 	getCmd.Flags().BoolVar(&opts.noCache, "no-cache", false, "Disable token caching")
 
@@ -83,7 +84,7 @@ func runGet(cmd *cobra.Command, opts *getOptions) error {
 
 	if !opts.noCache {
 		if err := tokenCache.Save(token, exp); err != nil {
-			fmt.Fprintf(cmd.ErrOrStderr(), "warning: failed to cache token: %v\n", err)
+			cmd.PrintErrf("warning: failed to cache token: %v\n", err)
 		}
 	}
 

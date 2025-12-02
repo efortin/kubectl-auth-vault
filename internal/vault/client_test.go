@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,13 +16,20 @@ import (
 	"github.com/efortin/kubectl-auth-vault/internal/vault"
 )
 
+func writeVaultResponse(w http.ResponseWriter, resp vault.OIDCTokenResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 func createTestJWT(exp int64) string {
 	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","typ":"JWT"}`))
 	payload := jwt.Payload{Exp: exp, Iat: time.Now().Unix(), Sub: "test"}
 	payloadBytes, _ := json.Marshal(payload)
 	payloadB64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
 	signature := base64.RawURLEncoding.EncodeToString([]byte("fake-signature"))
-	return header + "." + payloadB64 + "." + signature
+	return strings.Join([]string{header, payloadB64, signature}, ".")
 }
 
 var _ = Describe("Vault Client", func() {
@@ -54,11 +62,8 @@ var _ = Describe("Vault Client", func() {
 
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					Expect(r.URL.Path).To(Equal("/v1/identity/oidc/token/test_role"))
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
-						"data": map[string]interface{}{
-							"token": testToken,
-						},
+					writeVaultResponse(w, vault.OIDCTokenResponse{
+						Data: vault.OIDCTokenData{Token: testToken},
 					})
 				}))
 
@@ -73,10 +78,11 @@ var _ = Describe("Vault Client", func() {
 		})
 
 		Context("with no data in response", func() {
+			// Using map to simulate empty response without data field
 			It("should return an error", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{})
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 				}))
 
 				client, err := vault.NewClient(server.URL)
@@ -88,14 +94,16 @@ var _ = Describe("Vault Client", func() {
 		})
 
 		Context("with no token field", func() {
+			// Using map to simulate response without token field in data
 			It("should return an error", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
+					resp := map[string]interface{}{
 						"data": map[string]interface{}{
 							"other_field": "value",
 						},
-					})
+					}
+					_ = json.NewEncoder(w).Encode(resp)
 				}))
 
 				client, err := vault.NewClient(server.URL)
@@ -107,14 +115,16 @@ var _ = Describe("Vault Client", func() {
 		})
 
 		Context("with token not being a string", func() {
+			// Using map[string]interface{} to simulate malformed Vault response
 			It("should return an error", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
+					resp := map[string]interface{}{
 						"data": map[string]interface{}{
 							"token": 12345,
 						},
-					})
+					}
+					_ = json.NewEncoder(w).Encode(resp)
 				}))
 
 				client, err := vault.NewClient(server.URL)
@@ -128,11 +138,8 @@ var _ = Describe("Vault Client", func() {
 		Context("with invalid JWT (no exp)", func() {
 			It("should return token with default expiration", func() {
 				server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]interface{}{
-						"data": map[string]interface{}{
-							"token": "invalid-jwt-without-exp",
-						},
+					writeVaultResponse(w, vault.OIDCTokenResponse{
+						Data: vault.OIDCTokenData{Token: "invalid-jwt-without-exp"},
 					})
 				}))
 

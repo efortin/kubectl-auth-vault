@@ -36,9 +36,12 @@ archives:
       {{- .Version }}_
       {{- .Os }}_
       {{- .Arch }}
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     files:
       - README.md
       - LICENSE*
@@ -68,31 +71,37 @@ release:
   prerelease: auto
   name_template: "{{.ProjectName}} v{{.Version}}"
 
-brews:
-  - name: kubectl-auth_vault
-    repository:
-      owner: efortin
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    folder: Formula
-    homepage: "https://github.com/efortin/kubectl-auth-vault"
-    description: "Kubectl plugin for Vault OIDC token authentication"
-    license: "MIT"
-    skip_upload: auto
-    test: |
-      system "#{bin}/kubectl-auth_vault", "version"
-    install: |
-      bin.install "kubectl-auth_vault"
+# Homebrew tap publishing (requires HOMEBREW_TAP_GITHUB_TOKEN secret)
+# Uncomment when you have efortin/homebrew-tap repo and token set up
+# brews:
+#   - name: kubectl-auth_vault
+#     repository:
+#       owner: efortin
+#       name: homebrew-tap
+#       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+#     directory: Formula
+#     homepage: "https://github.com/efortin/kubectl-auth-vault"
+#     description: "Kubectl plugin for Vault OIDC token authentication"
+#     license: "MIT"
+#     skip_upload: auto
+#     ids:
+#       - default
+#     test: |
+#       system "#{bin}/kubectl-auth_vault", "version"
+#     install: |
+#       bin.install "kubectl-auth_vault"
 
-krews:
-  - name: auth-vault
-    repository:
-      owner: efortin
-      name: krew-index
-      token: "{{ .Env.KREW_GITHUB_TOKEN }}"
-    skip_upload: auto
-    homepage: "https://github.com/efortin/kubectl-auth-vault"
-    short_description: "Vault OIDC token authentication for kubectl"
-    description: |
-      A kubectl credential plugin that fetches OIDC tokens from HashiCorp Vault.
-      It caches tokens locally and reuses them until expiration.
+# Krew index publishing (requires KREW_GITHUB_TOKEN secret)
+# Uncomment when you have efortin/krew-index repo and token set up
+# krews:
+#   - name: auth-vault
+#     repository:
+#       owner: efortin
+#       name: krew-index
+#       token: "{{ .Env.KREW_GITHUB_TOKEN }}"
+#     skip_upload: auto
+#     homepage: "https://github.com/efortin/kubectl-auth-vault"
+#     short_description: "Vault OIDC token authentication for kubectl"
+#     description: |
+#       A kubectl credential plugin that fetches OIDC tokens from HashiCorp Vault.
+#       It caches tokens locally and reuses them until expiration.

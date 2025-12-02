@@ -27,7 +27,7 @@ var _ = Describe("Cache", func() {
 	})
 
 	AfterEach(func() {
-		os.RemoveAll(tmpDir)
+		_ = os.RemoveAll(tmpDir)
 	})
 
 	Describe("New", func() {

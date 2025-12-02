@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/efortin/kubectl-auth-vault/internal/vault"
 	"github.com/spf13/cobra"
+
+	"github.com/efortin/kubectl-auth-vault/internal/vault"
 )
+
+// printf is a helper that uses cobra's Printf (ignores write errors for CLI output).
+func printf(cmd *cobra.Command, format string, args ...interface{}) {
+	cmd.Printf(format, args...)
+}
 
 type configOptions struct {
 	vaultAddr string
@@ -49,10 +55,10 @@ Displays detailed information about the token on success.`,
 	}
 
 	configTestCmd.Flags().StringVar(&testOpts.vaultAddr, "vault-addr", "", "Vault server address (env: VAULT_ADDR)")
-	configTestCmd.Flags().StringVar(&testOpts.tokenPath, "token-path", "identity/oidc/token/enablers_kubernetes_admin", "Vault OIDC token path")
+	configTestCmd.Flags().StringVar(&testOpts.tokenPath, "token-path", "identity/oidc/token/kubernetes", "Vault OIDC token path")
 
 	configShowCmd.Flags().StringVar(&showOpts.vaultAddr, "vault-addr", "", "Vault server address (env: VAULT_ADDR)")
-	configShowCmd.Flags().StringVar(&showOpts.tokenPath, "token-path", "identity/oidc/token/enablers_kubernetes_admin", "Vault OIDC token path")
+	configShowCmd.Flags().StringVar(&showOpts.tokenPath, "token-path", "identity/oidc/token/kubernetes", "Vault OIDC token path")
 
 	configCmd.AddCommand(configTestCmd)
 	configCmd.AddCommand(configShowCmd)
@@ -68,28 +74,28 @@ func runConfigTest(cmd *cobra.Command, opts *configOptions) error {
 		return fmt.Errorf("VAULT_ADDR is required (use --vault-addr or VAULT_ADDR env var)")
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "Testing Vault configuration...\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  Vault Address: %s\n", vaultAddr)
-	fmt.Fprintf(cmd.OutOrStdout(), "  Token Path:    %s\n\n", opts.tokenPath)
+	printf(cmd, "Testing Vault configuration...\n")
+	printf(cmd, "  Vault Address: %s\n", vaultAddr)
+	printf(cmd, "  Token Path:    %s\n\n", opts.tokenPath)
 
 	client, err := vault.NewClient(vaultAddr)
 	if err != nil {
 		return fmt.Errorf("failed to create Vault client: %w", err)
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "Fetching OIDC token...\n")
+	printf(cmd, "Fetching OIDC token...\n")
 
 	token, exp, err := client.GetOIDCToken(cmd.Context(), opts.tokenPath)
 	if err != nil {
-		fmt.Fprintf(cmd.OutOrStdout(), "❌ Failed to fetch token: %v\n", err)
+		printf(cmd, "❌ Failed to fetch token: %v\n", err)
 		return err
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "✅ Successfully retrieved token!\n\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "Token Details:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  Length:     %d characters\n", len(token))
-	fmt.Fprintf(cmd.OutOrStdout(), "  Expiration: %d (Unix timestamp)\n", exp)
-	fmt.Fprintf(cmd.OutOrStdout(), "  Preview:    %s...\n", token[:min(50, len(token))])
+	printf(cmd, "✅ Successfully retrieved token!\n\n")
+	printf(cmd, "Token Details:\n")
+	printf(cmd, "  Length:     %d characters\n", len(token))
+	printf(cmd, "  Expiration: %d (Unix timestamp)\n", exp)
+	printf(cmd, "  Preview:    %s...\n", token[:min(50, len(token))])
 
 	return nil
 }
@@ -100,32 +106,32 @@ func runConfigShow(cmd *cobra.Command, opts *configOptions) error {
 		vaultAddr = os.Getenv("VAULT_ADDR")
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "Current Configuration:\n\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "Environment Variables:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  VAULT_ADDR:  %s\n", envOrDefault("VAULT_ADDR", "(not set)"))
-	fmt.Fprintf(cmd.OutOrStdout(), "  VAULT_TOKEN: %s\n", envOrDefault("VAULT_TOKEN", "(not set)"))
-	fmt.Fprintf(cmd.OutOrStdout(), "\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "Effective Settings:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  Vault Address: %s\n", valueOrDefault(vaultAddr, "(not set)"))
-	fmt.Fprintf(cmd.OutOrStdout(), "  Token Path:    %s\n", opts.tokenPath)
-	fmt.Fprintf(cmd.OutOrStdout(), "\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "Kubeconfig Example:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  users:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "  - name: vault-user\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "    user:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "      exec:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "        apiVersion: client.authentication.k8s.io/v1\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "        command: kubectl-auth_vault\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "        interactiveMode: Never\n")
+	printf(cmd, "Current Configuration:\n\n")
+	printf(cmd, "Environment Variables:\n")
+	printf(cmd, "  VAULT_ADDR:  %s\n", envOrDefault("VAULT_ADDR", "(not set)"))
+	printf(cmd, "  VAULT_TOKEN: %s\n", envOrDefault("VAULT_TOKEN", "(not set)"))
+	printf(cmd, "\n")
+	printf(cmd, "Effective Settings:\n")
+	printf(cmd, "  Vault Address: %s\n", valueOrDefault(vaultAddr, "(not set)"))
+	printf(cmd, "  Token Path:    %s\n", opts.tokenPath)
+	printf(cmd, "\n")
+	printf(cmd, "Kubeconfig Example:\n")
+	printf(cmd, "  users:\n")
+	printf(cmd, "  - name: vault-user\n")
+	printf(cmd, "    user:\n")
+	printf(cmd, "      exec:\n")
+	printf(cmd, "        apiVersion: client.authentication.k8s.io/v1\n")
+	printf(cmd, "        command: kubectl-auth_vault\n")
+	printf(cmd, "        interactiveMode: Never\n")
 	if vaultAddr != "" {
-		fmt.Fprintf(cmd.OutOrStdout(), "        env:\n")
-		fmt.Fprintf(cmd.OutOrStdout(), "        - name: VAULT_ADDR\n")
-		fmt.Fprintf(cmd.OutOrStdout(), "          value: %s\n", vaultAddr)
+		printf(cmd, "        env:\n")
+		printf(cmd, "        - name: VAULT_ADDR\n")
+		printf(cmd, "          value: %s\n", vaultAddr)
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "        args:\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "        - get\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "        - --token-path\n")
-	fmt.Fprintf(cmd.OutOrStdout(), "        - %s\n", opts.tokenPath)
+	printf(cmd, "        args:\n")
+	printf(cmd, "        - get\n")
+	printf(cmd, "        - --token-path\n")
+	printf(cmd, "        - %s\n", opts.tokenPath)
 
 	return nil
 }

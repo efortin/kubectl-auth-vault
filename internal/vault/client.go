@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/efortin/kubectl-auth-vault/internal/jwt"
 	"github.com/hashicorp/vault-client-go"
+
+	"github.com/efortin/kubectl-auth-vault/internal/jwt"
 )
 
 type Client struct {
