@@ -88,6 +88,7 @@ brews:
       system "#{bin}/kubectl-auth_vault", "version"
     install: |
       bin.install "kubectl-auth_vault"
+      bin.install_symlink "kubectl-auth_vault" => "auth_vault"
 
 # Krew index publishing (requires KREW_GITHUB_TOKEN secret)
 # Uncomment when you have efortin/krew-index repo and token set up

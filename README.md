@@ -25,6 +25,10 @@ brew tap efortin/tap
 brew install kubectl-auth_vault
 ```
 
+This installs both:
+- `kubectl-auth_vault` - for use as kubectl plugin (`kubectl auth-vault`)
+- `auth_vault` - symlink for kubeconfig exec credential
+
 ### From releases
 
 Download the latest release from the [releases page](https://github.com/efortin/kubectl-auth-vault/releases).
@@ -95,18 +99,17 @@ users:
   user:
     exec:
       apiVersion: client.authentication.k8s.io/v1
-      command: kubectl-auth_vault
+      command: auth_vault
       interactiveMode: Never
-      env:
-      - name: VAULT_ADDR
-        value: https://vault.example.com
       args:
       - get
+      - --vault-addr
+      - https://vault.example.com
       - --token-path
       - identity/oidc/token/kubernetes
 ```
 
-Or with inline vault-addr:
+Or using environment variable for Vault address:
 
 ```yaml
 users:
@@ -114,12 +117,13 @@ users:
   user:
     exec:
       apiVersion: client.authentication.k8s.io/v1
-      command: kubectl-auth_vault
+      command: auth_vault
       interactiveMode: Never
+      env:
+      - name: VAULT_ADDR
+        value: https://vault.example.com
       args:
       - get
-      - --vault-addr
-      - https://vault.<your-domain>
       - --token-path
       - identity/oidc/token/kubernetes
 ```
@@ -135,16 +139,19 @@ users:
 
 ## Authentication with Vault
 
-The plugin uses standard Vault authentication methods via environment variables:
+The plugin authenticates to Vault using your existing token:
 
-- `VAULT_TOKEN` - Direct token authentication
-- `VAULT_ROLE_ID` / `VAULT_SECRET_ID` - AppRole authentication
-- Vault agent socket if running
+1. **`VAULT_TOKEN`** environment variable (highest priority)
+2. **`~/.vault-token`** file (created by `vault login`)
 
 Make sure you are authenticated to Vault before using the plugin:
 
 ```bash
+# Login to Vault (creates ~/.vault-token)
 vault login -method=oidc
+
+# Or set token directly
+export VAULT_TOKEN=hvs.xxxxx
 ```
 
 ## Development
