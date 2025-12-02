@@ -29,9 +29,10 @@ jobs:
       - name: Run tests with Ginkgo
         run: go run github.com/onsi/ginkgo/v2/ginkgo -r -v --race --coverprofile=coverage.out --covermode=atomic ./...
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.out
           fail_ci_if_error: false
 
